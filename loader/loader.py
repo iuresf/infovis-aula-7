@@ -111,7 +111,16 @@ def rows(content: bytes, resource_url: str):
         regiao = pick(source, ("nom_subsistema", "id_subsistema", "regiao", "subsistema"))
         tipo = pick(source, ("nom_tipocombustivel", "tipo_combustivel", "fonte"), required=False)
         fonte = tipo or pick(source, ("nom_tipousina", "tipo_usina"))
-        geracao = parse_number(pick(source, ("val_geracaomwmed", "val_geracaomw", "geracao_mw", "geracao_mwh", "valor")))
+        # O ONS publica linhas sem medição no mesmo arquivo. Um campo presente, mas
+        # vazio, não deve derrubar a carga inteira (pick trata vazio como ausente).
+        geracao_texto = pick(
+            source,
+            ("val_geracaomwmed", "val_geracaomw", "val_geracao", "geracao_mw", "geracao_mwh", "valor"),
+            required=False,
+        )
+        if not geracao_texto:
+            continue
+        geracao = parse_number(geracao_texto)
         usina = pick(source, ("id_ons", "cod_usina", "nom_usina", "usina"), required=False)
         identity = json.dumps([data_hora.isoformat(), regiao, fonte, geracao, usina], ensure_ascii=False)
         yield (hashlib.sha256(identity.encode()).hexdigest(), data_hora, regiao, fonte, geracao, usina, resource_url)
