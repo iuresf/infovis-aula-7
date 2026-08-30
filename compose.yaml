@@ -1,0 +1,59 @@
+name: aula7-infovis
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ons}
+      POSTGRES_USER: ${POSTGRES_USER:-ons}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ons_aula7}
+      METABASE_DB: ${METABASE_DB:-metabase}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  loader:
+    build: ./loader
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ons}:${POSTGRES_PASSWORD:-ons_aula7}@postgres:5432/${POSTGRES_DB:-ons}
+      ONS_YEAR: ${ONS_YEAR:-2024}
+      ONS_MONTH: ${ONS_MONTH:-1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  metabase:
+    image: metabase/metabase:v0.50.26
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: postgres
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: ${METABASE_DB:-metabase}
+      MB_DB_USER: ${POSTGRES_USER:-ons}
+      MB_DB_PASS: ${POSTGRES_PASSWORD:-ons_aula7}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      loader:
+        condition: service_completed_successfully
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "wget -qO- http://localhost:3000/api/health | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
