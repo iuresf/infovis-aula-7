@@ -15,6 +15,14 @@ import requests
 
 CATALOG_API = "https://dados.ons.org.br/api/3/action"
 TIMEOUT = (20, 300)
+GENERATION_COLUMNS = (
+    "val_geracaomwmed",
+    "val_geracaomw",
+    "val_geracao",
+    "geracao_mw",
+    "geracao_mwh",
+    "valor",
+)
 
 
 def normalized(value: str) -> str:
@@ -121,7 +129,7 @@ def rows(content: bytes, resource_url: str):
     reader = csv.DictReader(io.StringIO(text), dialect=dialect)
     generation_column = find_column(
         reader.fieldnames,
-        ("val_geracaomwmed", "val_geracaomw", "val_geracao", "geracao_mw", "geracao_mwh", "valor"),
+        GENERATION_COLUMNS,
     )
     for source in reader:
         data_hora = parse_time(pick(source, ("din_instante", "data_hora", "instante")))
@@ -144,6 +152,7 @@ def main() -> None:
     month = int(os.getenv("ONS_MONTH", "1"))
     if not 1 <= month <= 12:
         raise ValueError("ONS_MONTH deve estar entre 1 e 12")
+    print(f"Colunas de geração aceitas: {', '.join(GENERATION_COLUMNS)}")
     resource = find_resource(year, month)
     print(f"Baixando {resource.get('name', resource['url'])}: {resource['url']}")
     content = csv_bytes(resource)
