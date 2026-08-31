@@ -22,6 +22,10 @@ services:
 
   loader:
     build: ./loader
+    # Mantém o código executado alinhado ao checkout, mesmo quando já existe uma
+    # imagem local antiga do loader. As dependências continuam vindo da imagem.
+    volumes:
+      - ./loader/loader.py:/app/loader.py:ro
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ons}:${POSTGRES_PASSWORD:-ons_aula7}@postgres:5432/${POSTGRES_DB:-ons}
       ONS_YEAR: ${ONS_YEAR:-2024}

@@ -100,19 +100,21 @@ O cabeçalho do conjunto `GERACAO_USINA-2` usa `val_geracao`, enquanto versões 
 do loader procuravam somente variações como `val_geracaomwmed`. O loader atual aceita
 ambas as nomenclaturas e, ao iniciar, registra no log a lista de colunas compatíveis.
 
-Se o traceback ainda mostrar uma lista que **não contém `val_geracao`**, o Compose está
-executando uma imagem antiga. Reconstrua e recrie apenas o loader (os dados do PostgreSQL
-permanecem preservados):
+Se o traceback ainda mostrar uma lista que **não contém `val_geracao`** (como no erro que
+termina em `('val_geracaomwmed', 'val_geracaomw', 'geracao_mw', ...)`), o contêiner em
+execução é anterior à correção. Pare o acompanhamento de logs com `Ctrl+C` e aplique a
+configuração atual com um único comando (os dados do PostgreSQL permanecem preservados):
 
 ```bash
-docker compose build --no-cache loader
-docker compose up --force-recreate loader
+docker compose up -d --build --force-recreate loader
 ```
 
-Em seguida, confira se a primeira linha do log contém `val_geracao`:
+O arquivo `loader.py` do checkout é montado como somente leitura no contêiner. Assim, a
+recriação acima não pode continuar usando o código antigo armazenado na imagem. Em seguida,
+confira se a primeira linha do novo log contém `val_geracao`:
 
 ```bash
-docker compose logs loader
+docker compose logs -f loader
 ```
 
 ## Reset
