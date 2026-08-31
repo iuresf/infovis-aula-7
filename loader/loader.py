@@ -76,6 +76,18 @@ def pick(row: dict, aliases: tuple[str, ...], required: bool = True) -> str:
     return ""
 
 
+def find_column(fieldnames: list[str] | None, aliases: tuple[str, ...]) -> str:
+    """Resolve uma coluna pelo cabeçalho, independentemente de acentos e pontuação."""
+    available = {normalized(name): name for name in (fieldnames or []) if name}
+    for alias in aliases:
+        if normalized(alias) in available:
+            return available[normalized(alias)]
+    columns = ", ".join(fieldnames or []) or "(cabeçalho vazio)"
+    raise ValueError(
+        f"Nenhuma coluna encontrada para {aliases}. Colunas recebidas: {columns}"
+    )
+
+
 def parse_time(value: str) -> datetime:
     value = value.strip().replace("Z", "+00:00")
     try:
@@ -106,18 +118,19 @@ def rows(content: bytes, resource_url: str):
     except csv.Error:
         dialect = csv.excel
         dialect.delimiter = ";"
-    for source in csv.DictReader(io.StringIO(text), dialect=dialect):
+    reader = csv.DictReader(io.StringIO(text), dialect=dialect)
+    generation_column = find_column(
+        reader.fieldnames,
+        ("val_geracaomwmed", "val_geracaomw", "val_geracao", "geracao_mw", "geracao_mwh", "valor"),
+    )
+    for source in reader:
         data_hora = parse_time(pick(source, ("din_instante", "data_hora", "instante")))
         regiao = pick(source, ("nom_subsistema", "id_subsistema", "regiao", "subsistema"))
         tipo = pick(source, ("nom_tipocombustivel", "tipo_combustivel", "fonte"), required=False)
         fonte = tipo or pick(source, ("nom_tipousina", "tipo_usina"))
         # O ONS publica linhas sem medição no mesmo arquivo. Um campo presente, mas
         # vazio, não deve derrubar a carga inteira (pick trata vazio como ausente).
-        geracao_texto = pick(
-            source,
-            ("val_geracaomwmed", "val_geracaomw", "val_geracao", "geracao_mw", "geracao_mwh", "valor"),
-            required=False,
-        )
+        geracao_texto = str(source.get(generation_column) or "").strip()
         if not geracao_texto:
             continue
         geracao = parse_number(geracao_texto)

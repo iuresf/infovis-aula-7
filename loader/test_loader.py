@@ -26,6 +26,19 @@ class RowsTest(unittest.TestCase):
 
         self.assertEqual(records[0][4], 7.25)
 
+    def test_reports_received_header_when_generation_column_is_unknown(self):
+        content = (
+            "din_instante;nom_subsistema;nom_tipocombustivel;medicao_desconhecida;id_ons\n"
+            "2024-01-01 00:00:00;SUL;EOLICA;7.25;U2\n"
+        ).encode()
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Colunas recebidas: din_instante, nom_subsistema, nom_tipocombustivel, "
+            "medicao_desconhecida, id_ons",
+        ):
+            list(rows(content, "https://example.test/data.csv"))
+
 
 if __name__ == "__main__":
     unittest.main()
