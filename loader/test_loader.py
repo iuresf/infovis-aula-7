@@ -1,9 +1,12 @@
 import unittest
 
-from loader import rows
+from loader import GENERATION_COLUMNS, rows
 
 
 class RowsTest(unittest.TestCase):
+    def test_current_ons_generation_column_is_declared(self):
+        self.assertIn("val_geracao", GENERATION_COLUMNS)
+
     def test_ignores_row_without_generation_measurement(self):
         content = (
             "din_instante;nom_subsistema;nom_tipocombustivel;val_geracaomwmed;id_ons\n"

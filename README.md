@@ -94,6 +94,27 @@ concluir e testa seu endpoint `/api/health`. Se o ONS estiver temporariamente in
 o loader reinicia automaticamente. Para trocar o mês mantendo os dados anteriores, altere
 `.env` e execute `docker compose run --rm loader`; meses diferentes coexistem na tabela.
 
+### Erro de coluna de geração não encontrada
+
+O cabeçalho do conjunto `GERACAO_USINA-2` usa `val_geracao`, enquanto versões anteriores
+do loader procuravam somente variações como `val_geracaomwmed`. O loader atual aceita
+ambas as nomenclaturas e, ao iniciar, registra no log a lista de colunas compatíveis.
+
+Se o traceback ainda mostrar uma lista que **não contém `val_geracao`**, o Compose está
+executando uma imagem antiga. Reconstrua e recrie apenas o loader (os dados do PostgreSQL
+permanecem preservados):
+
+```bash
+docker compose build --no-cache loader
+docker compose up --force-recreate loader
+```
+
+Em seguida, confira se a primeira linha do log contém `val_geracao`:
+
+```bash
+docker compose logs loader
+```
+
 ## Reset
 
 Reset completo (remove banco ONS, configurações/usuários do Metabase e volume):
